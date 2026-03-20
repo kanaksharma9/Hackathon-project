@@ -1,7 +1,7 @@
 // DevScroll API Contract
 // Person A replaces BASE_URL with their deployed backend
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://hackathon-project-776k.onrender.com";
 
 async function createSession(chips) {
   // MOCK: returns fake data so UI works without backend
