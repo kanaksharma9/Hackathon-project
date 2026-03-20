@@ -12,28 +12,16 @@ from routes import feed, reflect
 
 app = FastAPI(title="DevScroll API")
 
-# Allow all origins (this is a hackathon) — explicit for Railway proxy
+# Allow all origins (standard FastAPI CORS middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
-
-# Explicit catch-all OPTIONS handler to fix CORS 405 preflight on Railway
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str, request: Request):
-    return Response(
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
 
 app.include_router(feed.router)
 app.include_router(reflect.router)
