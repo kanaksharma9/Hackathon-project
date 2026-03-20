@@ -126,6 +126,8 @@
             border-radius: 16px;
             background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
                         var(--border) border-box;
+            background-clip: padding-box, border-box;
+            -webkit-background-clip: padding-box, border-box;
             border: 1.5px solid transparent;
             display: flex;
             flex-direction: column;
@@ -153,6 +155,8 @@
         .chip.selected {
             background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
                         var(--insta-grad) border-box;
+            background-clip: padding-box, border-box;
+            -webkit-background-clip: padding-box, border-box;
         }
 
         .chip.selected i { stroke: white; }
@@ -693,9 +697,37 @@
 
         .unlock-btn.ready { background: var(--insta-grad); color: white; cursor: pointer; }
         .unlock-btn.ready:active { transform: scale(0.97); }
+
+        /* TOAST */
+        #streak-toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--surface-3);
+            border: 1px solid var(--border-light);
+            padding: 12px 20px;
+            border-radius: 999px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        #streak-toast.visible { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
+
+    <!-- TOAST -->
+    <div id="streak-toast">
+        <i data-lucide="flame" width="18" height="18" stroke="#ff4757" style="fill:#ff4757"></i>
+        <span id="streak-msg">3 day streak!</span>
+    </div>
 
     <!-- SCREEN 1 -->
     <div id="screen-1">
@@ -813,30 +845,28 @@
             lucide.createIcons();
         });
 
-        // MOCK DATA
-        const MOCK_CARDS = [
-            { id:1, type:"insight", title:"React 19 Compiler Changes Everything", body:"Auto-memoization is now built-in at the compiler level. useCallback and useMemo are effectively obsolete for most use cases.", tag:"React", next_action:"npx create-react-app@latest --template typescript" },
-            { id:2, type:"repo", title:"shadcn/ui just crossed 100k stars", body:"Copy-paste components with zero dependency lock-in. You own the code completely the moment you paste it into your project.", tag:"React", next_action:"npx shadcn@latest init" },
-            { id:3, type:"challenge", title:"Explain Two Sum Without Looking It Up", body:"Don't just solve it. Explain the hashmap O(n) trick to someone who has never seen it. Time yourself: 30 seconds.", tag:"DSA", next_action:"leetcode.com/problems/two-sum" },
-            { id:4, type:"pattern", title:"Rate Limiting: Token Bucket vs Sliding Window", body:"Token bucket handles bursts gracefully. Sliding window is strict. Stripe uses token bucket in production — know why.", tag:"System Design", next_action:"Read: stripe.com/blog/rate-limiters" },
-            { id:5, type:"insight", title:"uv is Replacing pip Everywhere", body:"Written in Rust, 100x faster than pip. Drop-in replacement with identical CLI. No reason not to switch today.", tag:"Python", next_action:"pip install uv && uv pip install requests" },
-            { id:6, type:"repo", title:"Karpathy Released LLM.c", body:"GPT-2 trained in under 1000 lines of pure C. No PyTorch, no abstractions. The most educational ML repo ever written.", tag:"AI/ML", next_action:"github.com/karpathy/llm.c" },
-            { id:7, type:"challenge", title:"Git Rebase Without Googling", body:"Not what it does — explain when and why you would choose rebase over merge. Hint: it is about a clean linear history.", tag:"DevOps", next_action:"git rebase -i HEAD~3" },
-            { id:8, type:"pattern", title:"Async/Await is Syntactic Sugar", body:"Under the hood it compiles to .then() promise chains. If you do not understand Promises deeply, async/await will trip you.", tag:"React", next_action:"mdn.io/async-function" },
-            { id:9, type:"insight", title:"Docker Explained in Three Sentences", body:"Image is a snapshot of your app and its environment. Container is that snapshot running as a process. Registry is where images live.", tag:"DevOps", next_action:"docker run hello-world" },
-            { id:10, type:"challenge", title:"Ship a CLI Tool to npm Today", body:"One script. Reads input, produces output, has a --help flag. Forces you to think about real interfaces and distribution.", tag:"Python", next_action:"npm init && echo '#!/usr/bin/env node' > index.js" }
-        ];
+        const BASE_URL = "https://authentic-perfection-production-12b0.up.railway.app";
 
-        async function createSession(selectedTags) {
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    resolve({ session_id: 'session-' + Date.now(), cards: MOCK_CARDS });
-                }, 1200);
+        async function createSession(chips) {
+            const res = await fetch(BASE_URL + "/session", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ chips })
             });
+            return res.json();
         }
 
         async function saveReflection(sessionId, cardIndex, text) {
-            return new Promise(resolve => setTimeout(resolve, 300));
+            const res = await fetch(BASE_URL + "/reflect", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ 
+                    session_id: sessionId,
+                    card_index: cardIndex,
+                    reflection_text: text 
+                })
+            });
+            return res.json();
         }
 
         let selectedChips = new Set();
@@ -1137,9 +1167,28 @@
             
             overlay.classList.remove('visible');
             const text = document.getElementById('refArea').value.trim();
+            
             if (text.length >= 20 || timeout) {
-                await saveReflection(sessionId, lastScrollIndex, text);
+                try {
+                    const res = await saveReflection(sessionId, lastScrollIndex, text);
+                    if (res && res.streak) {
+                        showToast("🔥 " + res.streak + " day streak!");
+                    } else {
+                        showToast("🔥 Streak continues!");
+                    }
+                } catch(e) {
+                    showToast("Insight saved!");
+                }
             }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('streak-toast');
+            document.getElementById('streak-msg').textContent = msg;
+            toast.classList.add('visible');
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 3000);
         }
     </script>
 </body>
