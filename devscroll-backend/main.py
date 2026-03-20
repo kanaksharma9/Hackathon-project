@@ -11,12 +11,15 @@ load_dotenv()
 
 app = FastAPI(title="DevScroll API")
 
-# Allow all origins (this is a hackathon)
+# Allow all origins (this is a hackathon) — be explicit for Railway proxying
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
 )
 
 app.include_router(feed.router)
