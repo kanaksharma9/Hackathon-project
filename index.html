@@ -925,6 +925,9 @@
                 
                 try {
                     const res = await createSession(Array.from(selectedChips));
+                    if (!res || !res.cards) {
+                        throw new Error(res.detail || "Invalid response: Missing cards");
+                    }
                     feedData = res.cards;
                     sessionId = res.session_id;
 
@@ -943,7 +946,7 @@
                 if (newIndex !== lastScrollIndex) {
                     lastScrollIndex = newIndex;
                     scrollCount++;
-                    updateProgressBar(newIndex, feedData.length);
+                    updateProgressBar(newIndex, feedData ? feedData.length : 0);
                     if (scrollCount % 5 === 0 && scrollCount > 0) {
                         setTimeout(showReflection, 350);
                     }
