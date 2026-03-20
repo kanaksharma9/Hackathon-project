@@ -38,6 +38,7 @@ async def preflight_handler(rest_of_path: str, request: Request):
 app.include_router(feed.router)
 app.include_router(reflect.router)
 
+@app.get("/")
 @app.get("/health")
 def health_check():
     return {"status": "ok", "model": "gemini-3-flash-preview"}
