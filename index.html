@@ -947,7 +947,7 @@
                     lastScrollIndex = newIndex;
                     scrollCount++;
                     updateProgressBar(newIndex, feedData ? feedData.length : 0);
-                    if (scrollCount % 5 === 0 && scrollCount > 0) {
+                    if (scrollCount % 5 === 0 && scrollCount > 0 && sessionId) {
                         setTimeout(showReflection, 350);
                     }
                 }
@@ -1172,6 +1172,10 @@
             const text = document.getElementById('refArea').value.trim();
             
             if (text.length >= 20 || timeout) {
+                if (!sessionId) {
+                    overlay.classList.remove('visible'); // Cleanup
+                    return;
+                }
                 try {
                     const res = await saveReflection(sessionId, lastScrollIndex, text);
                     if (res && res.streak) {
